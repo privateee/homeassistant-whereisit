@@ -7,6 +7,8 @@ import '@material/mwc-button';
 import '../components/add-item-dialog.js';
 import '../components/edit-box-dialog.js';
 import '../components/edit-item-dialog.js';
+import '../components/move-box-dialog.js';
+import '../components/move-items-dialog.js';
 
 // Color palette for item cards (same as categories view)
 const ITEM_COLORS = [
@@ -275,6 +277,8 @@ export class BoxView extends LitElement {
             </div>
         </div>
         <div class="header-actions">
+            <mwc-icon-button icon="drive_file_move" @click=${this._openMoveBoxDialog} title="Move Box to Another Location"></mwc-icon-button>
+            <mwc-icon-button icon="move_to_inbox" @click=${this._openMoveItemsDialog} title="Move Items to Another Box"></mwc-icon-button>
             <mwc-icon-button icon="print" @click=${this._printLabel} title="Print Label"></mwc-icon-button>
             <mwc-icon-button icon="qr_code" @click=${this._showQR} title="View QR Code"></mwc-icon-button>
         </div>
@@ -326,6 +330,8 @@ export class BoxView extends LitElement {
       <add-item-dialog .boxId=${this.boxId} @item-added=${() => this._fetchBox(this.boxId)}></add-item-dialog>
       <edit-box-dialog .box=${this.box} @box-updated=${() => this._fetchBox(this.boxId)} @box-deleted=${this._handleBoxDeleted}></edit-box-dialog>
       <edit-item-dialog @item-updated=${() => this._fetchBox(this.boxId)} @item-deleted=${() => this._fetchBox(this.boxId)}></edit-item-dialog>
+      <move-box-dialog .box=${this.box} @box-moved=${this._handleBoxMoved}></move-box-dialog>
+      <move-items-dialog .box=${this.box} @items-moved=${() => this._fetchBox(this.boxId)}></move-items-dialog>
 
       <mwc-dialog id="qrDialog" heading="QR Code">
         <div class="qr-container">
@@ -339,8 +345,8 @@ export class BoxView extends LitElement {
 
     _goBack() {
         let url = '/';
-        if (this.box && this.box.unit_id) {
-            url = `/unit/${this.box.unit_id}`;
+        if (this.box && this.box.location_id) {
+            url = `/location/${this.box.location_id}`;
         }
 
         let targetUrl = url;
@@ -363,6 +369,20 @@ export class BoxView extends LitElement {
         } catch (e) {
             window.location.href = targetUrl;
         }
+    }
+
+    _openMoveBoxDialog() {
+        this.shadowRoot.querySelector('move-box-dialog').show(this.box);
+    }
+
+    _openMoveItemsDialog() {
+        this.shadowRoot.querySelector('move-items-dialog').show(this.box);
+    }
+
+    _handleBoxMoved(e) {
+        // Box is now in a different location — go back to the new location
+        this.box = { ...this.box, location_id: e.detail.location_id };
+        this._goBack();
     }
 
     _openAddItemDialog() {

@@ -47,6 +47,14 @@ async def startup():
     except Exception as e:
         logger.error(f"Error listing directories: {e}")
 
+    # Migrate existing Unit→Box data to new Unit→Location→Box schema
+    try:
+        from .migrate import run_migration
+        await run_migration()
+        logger.info("Migration complete.")
+    except Exception as e:
+        logger.warning(f"Migration warning (safe to ignore on fresh install): {e}")
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         

@@ -9,6 +9,7 @@ import '@material/mwc-icon';
 
 import './views/home-view.js';
 import './views/unit-view.js';
+import './views/location-view.js';
 import './views/box-view.js';
 import './views/categories-view.js';
 import './components/item-detail-dialog.js';
@@ -82,6 +83,7 @@ export class WhereIsItApp extends LitElement {
       { path: '/', component: 'home-view' },
       { path: '/categories', component: 'categories-view' },
       { path: '/unit/:id', component: 'unit-view' },
+      { path: '/location/:id', component: 'location-view' },
       { path: '/box/:id', component: 'box-view' },
       { path: '(.*)', component: 'home-view' },
     ]);

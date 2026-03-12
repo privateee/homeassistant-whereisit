@@ -8,8 +8,19 @@ class StorageUnit(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     description = Column(String, nullable=True)
-    
-    boxes = relationship("StorageBox", back_populates="unit")
+
+    locations = relationship("Location", back_populates="unit", cascade="all, delete-orphan")
+
+class Location(Base):
+    __tablename__ = "locations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    description = Column(String, nullable=True)
+    unit_id = Column(Integer, ForeignKey("storage_units.id"))
+
+    unit = relationship("StorageUnit", back_populates="locations")
+    boxes = relationship("StorageBox", back_populates="location", cascade="all, delete-orphan")
 
 class StorageBox(Base):
     __tablename__ = "storage_boxes"
@@ -18,10 +29,10 @@ class StorageBox(Base):
     slug = Column(String, unique=True, index=True)  # For QR codes/URLs
     name = Column(String, index=True)
     description = Column(String, nullable=True)
-    unit_id = Column(Integer, ForeignKey("storage_units.id"))
+    location_id = Column(Integer, ForeignKey("locations.id"))
 
-    unit = relationship("StorageUnit", back_populates="boxes")
-    items = relationship("Item", back_populates="box")
+    location = relationship("Location", back_populates="boxes")
+    items = relationship("Item", back_populates="box", cascade="all, delete-orphan")
 
 class Item(Base):
     __tablename__ = "items"
