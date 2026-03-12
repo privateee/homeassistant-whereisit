@@ -1,5 +1,5 @@
 name: "WhereIsIt"
-version: "0.4.32"
+version: "0.5.0"
 slug: "whereisit"
 description: "Physical storage management for Home Assistant"
 url: "https://github.com/privateee/homeassistant-whereisit"
