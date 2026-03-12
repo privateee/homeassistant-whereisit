@@ -13,6 +13,7 @@ import './views/location-view.js';
 import './views/box-view.js';
 import './views/categories-view.js';
 import './components/item-detail-dialog.js';
+import './components/backup-restore-dialog.js';
 
 export class WhereIsItApp extends LitElement {
   static styles = css`
@@ -111,13 +112,19 @@ export class WhereIsItApp extends LitElement {
           <mwc-top-app-bar-fixed>
             <mwc-icon-button icon="menu" slot="navigationIcon" @click=${this._toggleDrawer}></mwc-icon-button>
             <div slot="title">WhereIsIt</div>
+            <mwc-icon-button icon="settings" slot="actionItems" @click=${this._openSettings} title="Settings & Backup"></mwc-icon-button>
           </mwc-top-app-bar-fixed>
           <main></main>
         </div>
       </mwc-drawer>
       
       <item-detail-dialog id="globalItemDetailDialog"></item-detail-dialog>
+      <backup-restore-dialog id="backupRestoreDialog"></backup-restore-dialog>
     `;
+  }
+
+  _openSettings() {
+    this.shadowRoot.getElementById('backupRestoreDialog').show();
   }
 
   _toggleDrawer() {

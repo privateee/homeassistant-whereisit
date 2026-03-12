@@ -257,3 +257,113 @@ async def delete_category(category_name: str, db: AsyncSession = Depends(databas
 @router.get("/search")
 async def search(q: str = "", category: str = None, db: AsyncSession = Depends(database.get_db)):
     return await crud.search_storage(db, query=q, category=category)
+
+
+# ── Backup & Restore ──────────────────────────────────────────────────────────
+
+import zipfile
+import csv
+import io
+import shutil
+import tempfile
+from fastapi import Form
+from fastapi.responses import StreamingResponse
+
+DB_PATH = "/data/whereisit.db"
+PHOTOS_DIR = "/data/photos"
+
+@router.get("/backup/full", summary="Download full backup (DB + photos)")
+async def backup_full():
+    """Returns a zip containing whereisit.db + all photos."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        if os.path.exists(DB_PATH):
+            zf.write(DB_PATH, "whereisit.db")
+        if os.path.exists(PHOTOS_DIR):
+            for fname in os.listdir(PHOTOS_DIR):
+                fpath = os.path.join(PHOTOS_DIR, fname)
+                if os.path.isfile(fpath):
+                    zf.write(fpath, f"photos/{fname}")
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={"Content-Disposition": "attachment; filename=whereisit-backup.zip"},
+    )
+
+@router.get("/backup/csv", summary="Download CSV export of all data")
+async def backup_csv(db: AsyncSession = Depends(database.get_db)):
+    """Returns a CSV with all units, locations, boxes and items."""
+    units = await crud.get_units(db)
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["Unit", "Location", "Box", "Box Slug", "Item", "Description", "Quantity", "Category", "Photo"])
+
+    for unit in units:
+        for location in unit.locations:
+            for box in location.boxes:
+                if not box.items:
+                    # Write a row for the empty box too
+                    writer.writerow([unit.name, location.name, box.name, box.slug, "", "", "", "", ""])
+                for item in box.items:
+                    writer.writerow([
+                        unit.name,
+                        location.name,
+                        box.name,
+                        box.slug,
+                        item.name,
+                        item.description or "",
+                        item.quantity,
+                        item.category or "",
+                        item.photo_path or "",
+                    ])
+
+    buf.seek(0)
+    return StreamingResponse(
+        io.BytesIO(buf.getvalue().encode("utf-8-sig")),  # utf-8-sig for Excel compatibility
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=whereisit-export.csv"},
+    )
+
+@router.post("/restore/full", summary="Restore from a full backup zip")
+async def restore_full(file: UploadFile = File(...)):
+    """
+    Upload a whereisit-backup.zip to restore DB and photos.
+    The addon will use the restored DB immediately on next request.
+    """
+    if not file.filename.endswith(".zip"):
+        raise HTTPException(status_code=400, detail="File must be a .zip backup")
+
+    contents = await file.read()
+
+    try:
+        with zipfile.ZipFile(io.BytesIO(contents)) as zf:
+            names = zf.namelist()
+
+            if "whereisit.db" not in names:
+                raise HTTPException(status_code=400, detail="Invalid backup: whereisit.db not found in zip")
+
+            # Restore DB — write to temp then move so it's atomic
+            tmp_db = DB_PATH + ".restore_tmp"
+            with zf.open("whereisit.db") as src, open(tmp_db, "wb") as dst:
+                dst.write(src.read())
+            os.replace(tmp_db, DB_PATH)
+
+            # Restore photos
+            os.makedirs(PHOTOS_DIR, exist_ok=True)
+            for name in names:
+                if name.startswith("photos/") and not name.endswith("/"):
+                    fname = os.path.basename(name)
+                    out_path = os.path.join(PHOTOS_DIR, fname)
+                    with zf.open(name) as src, open(out_path, "wb") as dst:
+                        dst.write(src.read())
+
+    except zipfile.BadZipFile:
+        raise HTTPException(status_code=400, detail="Invalid or corrupted zip file")
+
+    return {
+        "message": "Restore complete. Please restart the addon to fully reload the database.",
+        "db_restored": True,
+        "photos_restored": len([n for n in names if n.startswith("photos/") and not n.endswith("/")]),
+    }

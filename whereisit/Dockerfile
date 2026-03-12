@@ -6,7 +6,7 @@ COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 
 # Force cache invalidation for source code
-ARG CACHEBUST=202603120003
+ARG CACHEBUST=202603120004
 RUN echo "Cache bust: $CACHEBUST"
 
 COPY frontend/ ./
