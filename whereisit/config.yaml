@@ -3,7 +3,6 @@ version: "0.5.0"
 slug: "whereisit"
 description: "Physical storage management for Home Assistant"
 url: "https://github.com/privateee/homeassistant-whereisit"
-image: "ghcr.io/d3l05/whereisit-{arch}"
 startup: application
 arch:
   - aarch64
