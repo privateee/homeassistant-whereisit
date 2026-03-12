@@ -6,12 +6,12 @@ COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 
 # Force cache invalidation for source code
-ARG CACHEBUST=202602202610
+ARG CACHEBUST=202603120001
 RUN echo "Cache bust: $CACHEBUST"
 
 COPY frontend/ ./
-# Verify that source code is updated (fail if api/units/ is found)
-RUN ! grep "api/units/" src/views/home-view.js || (echo "ERROR: Stale source code detected! Trailing slash found." && exit 1)
+# Verify source is updated (fail if location-view is missing)
+RUN test -f src/views/location-view.js || (echo "ERROR: location-view.js missing from source!" && exit 1)
 RUN npm run build
 
 # Final image
