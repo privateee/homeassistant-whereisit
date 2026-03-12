@@ -118,19 +118,21 @@ export class UnitView extends LitElement {
   _openEditLocationDialog(e, loc) { this.shadowRoot.querySelector('edit-location-dialog').show(loc); }
 
   _handleUnitDeleted() {
-    Router.go(window.AppRouter.urlForPath('/').replace(/([^:])\\/\\/+/g, '$1/'));
+    const url = '/';
+    const target = window.AppRouter ? window.AppRouter.urlForPath(url).replace(new RegExp('([^:])//+', 'g'), '$1/') : url;
+    Router.go(target);
   }
 
   _goBack() {
     const url = '/';
-    const target = window.AppRouter ? window.AppRouter.urlForPath(url).replace(/([^:])\\/\\/+/g, '$1/') : url;
-    try { Router.go(target); } catch { window.location.href = target; }
+    const target = window.AppRouter ? window.AppRouter.urlForPath(url).replace(new RegExp('([^:])//+', 'g'), '$1/') : url;
+    try { Router.go(target); } catch(e) { window.location.href = target; }
   }
 
   _navigateToLocation(id) {
     const url = `/location/${id}`;
-    const target = window.AppRouter ? window.AppRouter.urlForPath(url).replace(/([^:])\\/\\/+/g, '$1/') : url;
-    try { Router.go(target); } catch { window.location.href = target; }
+    const target = window.AppRouter ? window.AppRouter.urlForPath(url).replace(new RegExp('([^:])//+', 'g'), '$1/') : url;
+    try { Router.go(target); } catch(e) { window.location.href = target; }
   }
 }
 customElements.define('unit-view', UnitView);

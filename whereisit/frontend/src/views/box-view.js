@@ -351,7 +351,7 @@ export class BoxView extends LitElement {
 
         let targetUrl = url;
         if (window.AppRouter) {
-            targetUrl = window.AppRouter.urlForPath(url).replace(/([^:])\/\/+/g, '$1/');
+            targetUrl = window.AppRouter.urlForPath(url).replace(new RegExp('([^:])//+', 'g'), '$1/');
         }
 
         console.log(`[Prod Debug] BoxView _goBack to: ${targetUrl}`);

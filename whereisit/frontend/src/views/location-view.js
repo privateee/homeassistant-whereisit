@@ -48,7 +48,6 @@ export class LocationView extends LitElement {
   `;
 
   static properties = {
-    location: { type: Object },
     _location: { type: Object, state: true },
   };
 
@@ -118,14 +117,14 @@ export class LocationView extends LitElement {
 
   _goBack() {
     const url = this._location ? `/unit/${this._location.unit_id}` : '/';
-    const target = window.AppRouter ? window.AppRouter.urlForPath(url).replace(/([^:])\\/\\/+/g, '$1/') : url;
-    try { Router.go(target); } catch { window.location.href = target; }
+    const target = window.AppRouter ? window.AppRouter.urlForPath(url).replace(new RegExp('([^:])//+', 'g'), '$1/') : url;
+    try { Router.go(target); } catch(e) { window.location.href = target; }
   }
 
   _navigateToBox(id) {
     const url = `/box/${id}`;
-    const target = window.AppRouter ? window.AppRouter.urlForPath(url).replace(/([^:])\\/\\/+/g, '$1/') : url;
-    try { Router.go(target); } catch { window.location.href = target; }
+    const target = window.AppRouter ? window.AppRouter.urlForPath(url).replace(new RegExp('([^:])//+', 'g'), '$1/') : url;
+    try { Router.go(target); } catch(e) { window.location.href = target; }
   }
 
   _openAddBoxDialog() { this.shadowRoot.querySelector('add-box-dialog').show(); }
