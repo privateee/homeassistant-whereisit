@@ -2,7 +2,7 @@ name: "WhereIsIt"
 version: "0.4.31"
 slug: "whereisit"
 description: "Physical storage management for Home Assistant"
-url: "https://github.com/D3L05/homeassistant-whereisit"
+url: "https://github.com/privateee/homeassistant-whereisit"
 image: "ghcr.io/d3l05/whereisit-{arch}"
 startup: application
 arch:
