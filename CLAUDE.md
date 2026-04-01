@@ -32,43 +32,6 @@ Deployed as an HA ingress add-on, served at a dynamic base URL like `/api/hassio
 
 ---
 
-## Project Layout
-
-```
-whereisit/
-├── app/
-│   ├── main.py              # FastAPI app init, static files, CORS
-│   ├── models.py            # SQLAlchemy ORM models
-│   ├── schemas.py           # Pydantic request/response schemas
-│   ├── crud.py              # All DB operations (async)
-│   ├── database.py          # Async SQLAlchemy session
-│   ├── utils.py             # QR code generation (PIL)
-│   └── api/
-│       └── endpoints.py     # All FastAPI routes (/api/...)
-└── frontend/
-    └── src/
-        ├── where-is-it-app.js   # Root component, Vaadin Router setup
-        ├── views/
-        │   ├── home-view.js     # Dashboard: units grid, search, category chips
-        │   ├── unit-view.js     # Locations inside a unit
-        │   ├── location-view.js # Boxes inside a location
-        │   ├── box-view.js      # Items inside a box (deepest level)
-        │   └── categories-view.js # Category management CRUD
-        └── components/
-            ├── item-detail-dialog.js   # Read-only item detail (global, in app root)
-            ├── add-item-dialog.js      # Create item with multi-category chips
-            ├── edit-item-dialog.js     # Edit item with multi-category chips
-            ├── add/edit-box-dialog.js
-            ├── add/edit-location-dialog.js
-            ├── add/edit-unit-dialog.js
-            ├── move-box-dialog.js
-            ├── move-items-dialog.js
-            ├── qr-scanner-dialog.js
-            └── backup-restore-dialog.js
-```
-
----
-
 ## Key Patterns
 
 ### Navigation (Frontend)
@@ -124,20 +87,6 @@ const url = window.AppRouter
 
 ---
 
-## DB Models (summary)
-
-```python
-StorageUnit(id, name, description)
-  └── Location(id, name, description, unit_id)
-        └── StorageBox(id, slug, name, description, location_id)
-              └── Item(id, name, description, quantity, category, photo_path, box_id)
-
-Category(id, name)  # standalone list for autocomplete
-```
-`StorageBox.slug` is UUID-based, used in QR codes and `/box/<slug>` URLs.
-
----
-
 ## HA Ingress Quirks
 - Base URL is dynamic — never hardcode `/`
 - Double slashes (`//`) crash navigation → always apply `.replace(/([^:])\/\/+/g, '$1/')`
@@ -147,7 +96,7 @@ Category(id, name)  # standalone list for autocomplete
 ---
 
 ## Current Version
-`config.yaml` → `version: 0.6.1`
+`config.yaml` → `version: 0.6.2`
 
 ---
 

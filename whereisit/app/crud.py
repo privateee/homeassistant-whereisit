@@ -273,10 +273,9 @@ async def rename_category(db: AsyncSession, old_name: str, new_name: str):
         item.category = ','.join(cats)
     await db.commit()
 
-async def delete_category(db: AsyncSession, category_name: str):
+async def delete_category(db: AsyncSession, category_name: str, replacement: str = None):
     from sqlalchemy import delete, or_
     await db.execute(delete(models.Category).where(models.Category.name == category_name))
-    # Handle comma-separated category values in items
     result = await db.execute(select(models.Item).where(
         or_(
             models.Item.category == category_name,
@@ -288,8 +287,26 @@ async def delete_category(db: AsyncSession, category_name: str):
     items = result.scalars().all()
     for item in items:
         cats = [c.strip() for c in item.category.split(',') if c.strip() != category_name]
+        if replacement and replacement not in cats:
+            cats.append(replacement)
         item.category = ','.join(cats) if cats else None
     await db.commit()
+
+async def get_category_usage(db: AsyncSession, category_name: str):
+    from sqlalchemy import or_
+    result = await db.execute(
+        select(models.Item)
+        .options(selectinload(models.Item.box))
+        .where(or_(
+            models.Item.category == category_name,
+            models.Item.category.like(f"{category_name},%"),
+            models.Item.category.like(f"%,{category_name}"),
+            models.Item.category.like(f"%,{category_name},%"),
+        ))
+    )
+    items = result.scalars().all()
+    boxes = sorted({item.box.name for item in items if item.box})
+    return {"count": len(items), "boxes": boxes}
 
 # ── Search ────────────────────────────────────────────────────────────────────
 

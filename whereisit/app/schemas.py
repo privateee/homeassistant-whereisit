@@ -101,6 +101,19 @@ class Unit(UnitBase):
     class Config:
         from_attributes = True
 
+# ── Search ────────────────────────────────────────────────────────────────────
+
+class ItemWithBox(ItemBase):
+    id: int
+    box_id: int
+    box: Optional[BoxSummary] = None
+    class Config:
+        from_attributes = True
+
+class SearchResponse(BaseModel):
+    boxes: List[BoxSummary] = []
+    items: List[ItemWithBox] = []
+
 # ── Move ──────────────────────────────────────────────────────────────────────
 
 class MoveBoxRequest(BaseModel):

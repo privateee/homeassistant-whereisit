@@ -161,7 +161,7 @@ export class EditItemDialog extends LitElement {
         if (!this.item) return html``;
 
         return html`
-      <mwc-dialog heading="Edit Item">
+      <mwc-dialog heading="Edit Item" @closed=${this._onDialogClosed}>
         <div>
           <mwc-textfield id="name" label="Name" .value=${this.item.name} dialogInitialFocus></mwc-textfield>
           <mwc-textfield id="description" label="Description" .value=${this.item.description || ''} icon="description"></mwc-textfield>
@@ -204,6 +204,10 @@ export class EditItemDialog extends LitElement {
         <mwc-button slot="secondaryAction" dialogAction="close">Cancel</mwc-button>
       </mwc-dialog>
     `;
+    }
+
+    _onDialogClosed() {
+        this.dispatchEvent(new CustomEvent('edit-dialog-closed'));
     }
 
     async _save() {

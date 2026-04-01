@@ -235,13 +235,15 @@ export class BoxView extends LitElement {
     static properties = {
         location: { type: Object },
         box: { type: Object },
-        _itemDetailOpen: { type: Boolean, state: true }
+        _itemDetailOpen: { type: Boolean, state: true },
+        _editItemOpen: { type: Boolean, state: true }
     };
 
     constructor() {
         super();
         this.box = null;
         this._itemDetailOpen = false;
+        this._editItemOpen = false;
     }
 
     onBeforeEnter(location) {
@@ -329,7 +331,7 @@ export class BoxView extends LitElement {
         </div>
       `}
 
-      ${!this._itemDetailOpen ? html`<mwc-fab icon="add" @click=${this._openAddItemDialog}></mwc-fab>` : ''}
+      ${!this._itemDetailOpen && !this._editItemOpen ? html`<mwc-fab icon="add" @click=${this._openAddItemDialog}></mwc-fab>` : ''}
       <add-item-dialog .boxId=${this.boxId} @item-added=${() => this._fetchBox(this.boxId)}></add-item-dialog>
       <edit-box-dialog .box=${this.box} @box-updated=${() => this._fetchBox(this.boxId)} @box-deleted=${this._handleBoxDeleted}></edit-box-dialog>
       <edit-item-dialog @item-updated=${() => this._fetchBox(this.boxId)} @item-deleted=${() => this._fetchBox(this.boxId)}></edit-item-dialog>
@@ -411,7 +413,14 @@ export class BoxView extends LitElement {
         if (e && e.stopPropagation) {
             e.stopPropagation();
         }
-        this.shadowRoot.querySelector('edit-item-dialog').show(item);
+        this._editItemOpen = true;
+        const dialog = this.shadowRoot.querySelector('edit-item-dialog');
+        const onClosed = () => {
+            this._editItemOpen = false;
+            dialog.removeEventListener('edit-dialog-closed', onClosed);
+        };
+        dialog.addEventListener('edit-dialog-closed', onClosed);
+        dialog.show(item);
     }
 
     _handleBoxDeleted() {

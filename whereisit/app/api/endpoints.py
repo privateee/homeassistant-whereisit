@@ -247,14 +247,18 @@ async def rename_category(old_name: str, new_name: str, db: AsyncSession = Depen
     await crud.rename_category(db, old_name, new_name.strip())
     return {"message": f"Category '{old_name}' renamed to '{new_name.strip()}'"}
 
+@router.get("/categories/{category_name}/usage")
+async def category_usage(category_name: str, db: AsyncSession = Depends(database.get_db)):
+    return await crud.get_category_usage(db, category_name)
+
 @router.delete("/categories/{category_name}")
-async def delete_category(category_name: str, db: AsyncSession = Depends(database.get_db)):
-    await crud.delete_category(db, category_name)
+async def delete_category(category_name: str, replacement: str = None, db: AsyncSession = Depends(database.get_db)):
+    await crud.delete_category(db, category_name, replacement=replacement)
     return {"message": f"Category '{category_name}' removed from all items"}
 
 # ── Search ────────────────────────────────────────────────────────────────────
 
-@router.get("/search")
+@router.get("/search", response_model=schemas.SearchResponse)
 async def search(q: str = "", category: str = None, db: AsyncSession = Depends(database.get_db)):
     return await crud.search_storage(db, query=q, category=category)
 

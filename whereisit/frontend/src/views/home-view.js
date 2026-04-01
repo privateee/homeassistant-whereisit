@@ -166,7 +166,7 @@ export class HomeView extends LitElement {
 
   async _fetchCategories() {
     try {
-      const response = await fetch('api/categories');
+      const response = await fetch(window.AppRouter ? window.AppRouter.urlForPath('/api/categories') : 'api/categories');
       if (response.ok) {
         this.categories = await response.json();
         this.requestUpdate();
@@ -324,7 +324,8 @@ export class HomeView extends LitElement {
     }
 
     try {
-      let qs = `api/search?q=${encodeURIComponent(this.searchQuery)}`;
+      const base = window.AppRouter ? window.AppRouter.urlForPath('/api/search') : 'api/search';
+      let qs = `${base}?q=${encodeURIComponent(this.searchQuery)}`;
       if (this.selectedCategory) {
         qs += `&category=${encodeURIComponent(this.selectedCategory)}`;
       }

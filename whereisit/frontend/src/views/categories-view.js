@@ -211,6 +211,51 @@ export class CategoriesView extends LitElement {
         width: 100%;
     }
 
+    /* Chips in delete dialog */
+    .category-label {
+        font-family: Roboto, sans-serif;
+        font-size: 0.75rem;
+        color: rgba(0,0,0,0.6);
+        margin-bottom: 8px;
+    }
+    .replace-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 8px;
+    }
+    .cat-chip {
+        background: #f0f2f5;
+        border: 1px solid #ddd;
+        border-radius: 16px;
+        padding: 4px 12px;
+        font-size: 0.8rem;
+        font-family: Roboto, sans-serif;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .cat-chip:hover { background: #e0e0e0; }
+    .cat-chip.selected {
+        background: var(--mdc-theme-primary, #03a9f4);
+        color: white;
+        border-color: var(--mdc-theme-primary, #03a9f4);
+    }
+    .usage-warning {
+        background: #fff8e1;
+        border: 1px solid #ffe082;
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-bottom: 12px;
+        font-size: 0.875rem;
+        color: #5d4037;
+    }
+    .replace-hint {
+        font-size: 0.8rem;
+        color: #616161;
+        margin: 0 0 4px 0 !important;
+        font-style: italic;
+    }
+
     /* Snackbar */
     .snackbar {
         position: fixed;
@@ -241,6 +286,9 @@ export class CategoriesView extends LitElement {
         categoryToRename: { type: String },
         snackbarMsg: { type: String },
         _showSnackbar: { type: Boolean },
+        _deleteTarget: { type: String, state: true },
+        _deleteUsage: { type: Object, state: true },
+        _deleteReplacement: { type: String, state: true },
     };
 
     constructor() {
@@ -249,6 +297,9 @@ export class CategoriesView extends LitElement {
         this.categoryToRename = "";
         this.snackbarMsg = "";
         this._showSnackbar = false;
+        this._deleteTarget = null;
+        this._deleteUsage = null;
+        this._deleteReplacement = '';
     }
 
     async connectedCallback() {
@@ -300,6 +351,39 @@ export class CategoriesView extends LitElement {
         <mwc-button slot="secondaryAction" dialogAction="close">Cancel</mwc-button>
       </mwc-dialog>
 
+      <!-- Delete Dialog -->
+      <mwc-dialog id="deleteDialog" heading="Delete Category">
+        <div class="dialog-content">
+            <p>Delete category <b>${this._deleteTarget}</b>?</p>
+            ${this._deleteUsage && this._deleteUsage.count > 0 ? html`
+                <div class="usage-warning">
+                    Used by <b>${this._deleteUsage.count}</b> item${this._deleteUsage.count !== 1 ? 's' : ''}
+                    ${this._deleteUsage.boxes && this._deleteUsage.boxes.length > 0 ? html`
+                        in: ${this._deleteUsage.boxes.join(', ')}
+                    ` : ''}
+                </div>
+                <div class="category-label">Replace with (optional):</div>
+                <div class="replace-chips">
+                    ${this.categories.filter(c => c !== this._deleteTarget).map(c => html`
+                        <button class="cat-chip ${this._deleteReplacement === c ? 'selected' : ''}"
+                            @click=${() => { this._deleteReplacement = this._deleteReplacement === c ? '' : c; }}>
+                            ${c}
+                        </button>
+                    `)}
+                </div>
+                <p class="replace-hint">
+                    ${this._deleteReplacement
+                        ? `Items will be reassigned to "${this._deleteReplacement}".`
+                        : 'Items will become uncategorized if no replacement is chosen.'}
+                </p>
+            ` : html`
+                <p>No items are currently assigned to this category.</p>
+            `}
+        </div>
+        <mwc-button slot="primaryAction" style="--mdc-theme-primary: #f44336;" @click=${this._confirmDeleteCategory}>Delete</mwc-button>
+        <mwc-button slot="secondaryAction" dialogAction="close">Cancel</mwc-button>
+      </mwc-dialog>
+
       <!-- Snackbar -->
       <div class="snackbar ${this._showSnackbar ? 'show' : ''}">${this.snackbarMsg}</div>
     `;
@@ -333,7 +417,7 @@ export class CategoriesView extends LitElement {
                     <div class="category-name">${c}</div>
                     <div class="card-actions">
                         <mwc-icon-button icon="edit" @click=${() => this._openRenameDialog(c)} title="Rename"></mwc-icon-button>
-                        <mwc-icon-button class="delete-btn" icon="delete" @click=${() => this._deleteCategory(c)} title="Delete"></mwc-icon-button>
+                        <mwc-icon-button class="delete-btn" icon="delete" @click=${() => this._openDeleteDialog(c)} title="Delete"></mwc-icon-button>
                     </div>
                 </div>
             `;
@@ -424,20 +508,49 @@ export class CategoriesView extends LitElement {
     }
 
     /* ---- Delete ---- */
-    async _deleteCategory(category) {
-        if (!confirm(`Delete "${category}"? All items will become uncategorized.`)) {
-            return;
-        }
+    async _openDeleteDialog(category) {
+        this._deleteTarget = category;
+        this._deleteReplacement = '';
+        this._deleteUsage = null;
 
         try {
-            const url = window.AppRouter ? window.AppRouter.urlForPath(`/api/categories/${encodeURIComponent(category)}`) : `/api/categories/${encodeURIComponent(category)}`;
-            const response = await fetch(url, {
-                method: 'DELETE'
-            });
+            const url = window.AppRouter
+                ? window.AppRouter.urlForPath(`/api/categories/${encodeURIComponent(category)}/usage`)
+                : `/api/categories/${encodeURIComponent(category)}/usage`;
+            const response = await fetch(url);
+            if (response.ok) {
+                this._deleteUsage = await response.json();
+            } else {
+                this._deleteUsage = { count: 0, boxes: [] };
+            }
+        } catch (e) {
+            this._deleteUsage = { count: 0, boxes: [] };
+        }
+
+        await this.updateComplete;
+        this.shadowRoot.getElementById('deleteDialog').show();
+    }
+
+    async _confirmDeleteCategory() {
+        const category = this._deleteTarget;
+        const replacement = this._deleteReplacement.trim() || null;
+
+        try {
+            let url = window.AppRouter
+                ? window.AppRouter.urlForPath(`/api/categories/${encodeURIComponent(category)}`)
+                : `/api/categories/${encodeURIComponent(category)}`;
+            if (replacement) {
+                url += `?replacement=${encodeURIComponent(replacement)}`;
+            }
+            const response = await fetch(url, { method: 'DELETE' });
 
             if (response.ok) {
+                this.shadowRoot.getElementById('deleteDialog').close();
                 this._fetchCategories();
-                this._showToast(`"${category}" deleted`);
+                const msg = replacement
+                    ? `"${category}" deleted — items moved to "${replacement}"`
+                    : `"${category}" deleted`;
+                this._showToast(msg);
             } else {
                 this._showToast("Failed to delete category");
             }
