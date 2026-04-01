@@ -272,7 +272,7 @@ export class HomeView extends LitElement {
       <add-unit-dialog @unit-added=${this._fetchUnits}></add-unit-dialog>
       <edit-unit-dialog @unit-updated=${this._fetchUnits} @unit-deleted=${this._fetchUnits}></edit-unit-dialog>
       <qr-scanner-dialog @qr-scanned=${this._handleQrScanned}></qr-scanner-dialog>
-      <edit-item-dialog @item-updated=${this._performSearch} @item-deleted=${this._performSearch}></edit-item-dialog>
+      <edit-item-dialog @item-updated=${this._onItemChanged} @item-deleted=${this._onItemChanged}></edit-item-dialog>
     `;
   }
 
@@ -404,6 +404,11 @@ export class HomeView extends LitElement {
       console.error("[Prod Debug] Router.go threw an exception:", e);
       window.location.href = targetUrl;
     }
+  }
+
+  _onItemChanged() {
+    this._fetchCategories();
+    this._performSearch();
   }
 
   _openAddUnitDialog() {
