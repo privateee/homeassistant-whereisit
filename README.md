@@ -8,9 +8,11 @@ A physical storage management system for Home Assistant.
 
 ## Features
 - **Hierarchical Storage**: Units -> Boxes -> Items
+- **Move**: You can reassign Items to other Boxex and Boxes to other Units 
 - **QR Codes**: Generate and print QR codes for boxes.
 - **Search**: Quickly find items or boxes.
 - **Mobile First**: Designed for the Home Assistant Companion App.
+- **Backup and restore**: Click on the Gear icon. 
 
 ## Installation
 
