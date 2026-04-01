@@ -1,4 +1,5 @@
 import { LitElement, html, css } from 'lit';
+import { Router } from '@vaadin/router';
 import '@material/mwc-icon-button';
 import '@material/mwc-icon';
 import '@material/mwc-fab';
@@ -233,12 +234,14 @@ export class BoxView extends LitElement {
 
     static properties = {
         location: { type: Object },
-        box: { type: Object }
+        box: { type: Object },
+        _itemDetailOpen: { type: Boolean, state: true }
     };
 
     constructor() {
         super();
         this.box = null;
+        this._itemDetailOpen = false;
     }
 
     onBeforeEnter(location) {
@@ -313,9 +316,9 @@ export class BoxView extends LitElement {
                     ${item.quantity > 1 ? html`
                         <span class="quantity-badge">×${item.quantity}</span>
                     ` : ''}
-                    ${item.category ? html`
-                        <span class="category-badge" style="background: ${getColorForItem(item.category).bg}; color: ${getColorForItem(item.category).fg};">${item.category}</span>
-                    ` : ''}
+                    ${item.category ? item.category.split(',').map(cat => cat.trim()).filter(Boolean).map(cat => html`
+                        <span class="category-badge" style="background: ${getColorForItem(cat).bg}; color: ${getColorForItem(cat).fg};">${cat}</span>
+                    `) : ''}
                     <div class="card-actions">
                         <mwc-icon-button icon="visibility" @click=${(e) => this._openItemDetail(e, item)} title="View Details"></mwc-icon-button>
                         <mwc-icon-button icon="edit" @click=${(e) => this._openEditItemDialog(e, item)} title="Edit"></mwc-icon-button>
@@ -326,7 +329,7 @@ export class BoxView extends LitElement {
         </div>
       `}
 
-      <mwc-fab icon="add" @click=${this._openAddItemDialog}></mwc-fab>
+      ${!this._itemDetailOpen ? html`<mwc-fab icon="add" @click=${this._openAddItemDialog}></mwc-fab>` : ''}
       <add-item-dialog .boxId=${this.boxId} @item-added=${() => this._fetchBox(this.boxId)}></add-item-dialog>
       <edit-box-dialog .box=${this.box} @box-updated=${() => this._fetchBox(this.boxId)} @box-deleted=${this._handleBoxDeleted}></edit-box-dialog>
       <edit-item-dialog @item-updated=${() => this._fetchBox(this.boxId)} @item-deleted=${() => this._fetchBox(this.boxId)}></edit-item-dialog>
@@ -344,31 +347,9 @@ export class BoxView extends LitElement {
     }
 
     _goBack() {
-        let url = '/';
-        if (this.box && this.box.location_id) {
-            url = `/location/${this.box.location_id}`;
-        }
-
-        let targetUrl = url;
-        if (window.AppRouter) {
-            targetUrl = window.AppRouter.urlForPath(url).replace(new RegExp('([^:])//+', 'g'), '$1/');
-        }
-
-        console.log(`[Prod Debug] BoxView _goBack to: ${targetUrl}`);
-
-        try {
-            Router.go(targetUrl);
-            setTimeout(() => {
-                const current = window.location.pathname;
-                // Robust check for ingress paths
-                if (!current.endsWith(url) && !current.endsWith(url + '/')) {
-                    console.warn("[Prod Debug] BoxView backnav failed. Forcing:", targetUrl);
-                    window.location.href = targetUrl;
-                }
-            }, 100);
-        } catch (e) {
-            window.location.href = targetUrl;
-        }
+        const url = this.box && this.box.location_id ? `/location/${this.box.location_id}` : '/';
+        const target = window.AppRouter ? window.AppRouter.urlForPath(url).replace(/([^:])\/\/+/g, '$1/') : url;
+        try { Router.go(target); } catch (e) { window.location.href = target; }
     }
 
     _openMoveBoxDialog() {
@@ -407,9 +388,15 @@ export class BoxView extends LitElement {
 
         const dialog = app.shadowRoot.getElementById('globalItemDetailDialog');
         if (dialog) {
+            this._itemDetailOpen = true;
             dialog.show({ ...item, box: this.box });
 
-            // Listen for the edit request from the detail dialog
+            const closeHandler = () => {
+                dialog.removeEventListener('item-detail-closed', closeHandler);
+                this._itemDetailOpen = false;
+            };
+            dialog.addEventListener('item-detail-closed', closeHandler);
+
             const editHandler = (ev) => {
                 dialog.removeEventListener('edit-item-requested', editHandler);
                 this._openEditItemDialog(null, ev.detail.item);

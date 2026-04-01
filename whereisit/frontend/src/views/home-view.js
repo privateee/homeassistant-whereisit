@@ -9,6 +9,7 @@ import { Router } from '@vaadin/router';
 import '../components/add-unit-dialog.js';
 import '../components/edit-unit-dialog.js';
 import '../components/qr-scanner-dialog.js';
+import '../components/edit-item-dialog.js';
 
 export class HomeView extends LitElement {
   static styles = css`
@@ -228,7 +229,7 @@ export class HomeView extends LitElement {
               ${this.searchResults.items.map(item => html`
                 <mwc-list-item twoline graphic="medium" @click=${(e) => this._openItemDetail(e, item)} style="margin: 4px 8px; border-radius: 8px; overflow: hidden; --mdc-list-item-graphic-margin: 16px;">
                   <span>${item.name}</span>
-                  <span slot="secondary">In Box: ${item.box ? item.box.name : 'Unknown'} • Qty: ${item.quantity} ${item.category ? `• [${item.category}]` : ''}</span>
+                  <span slot="secondary">In Box: ${item.box ? item.box.name : 'Unknown'} • Qty: ${item.quantity} ${item.category ? `• ${item.category.split(',').map(c => c.trim()).filter(Boolean).map(c => `[${c}]`).join(' ')}` : ''}</span>
                   ${item.photo_path
         ? html`<img slot="graphic" src="${window.AppRouter ? window.AppRouter.urlForPath(item.photo_path) : item.photo_path}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 8px; border: 1px solid #eee; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" />`
         : html`<mwc-icon slot="graphic" style="color: gray; font-size: 32px; background: #f5f5f5; border-radius: 8px; display: flex; align-items: center; justify-content: center; width: 48px; height: 48px;">category</mwc-icon>`}
@@ -271,6 +272,7 @@ export class HomeView extends LitElement {
       <add-unit-dialog @unit-added=${this._fetchUnits}></add-unit-dialog>
       <edit-unit-dialog @unit-updated=${this._fetchUnits} @unit-deleted=${this._fetchUnits}></edit-unit-dialog>
       <qr-scanner-dialog @qr-scanned=${this._handleQrScanned}></qr-scanner-dialog>
+      <edit-item-dialog @item-updated=${this._performSearch} @item-deleted=${this._performSearch}></edit-item-dialog>
     `;
   }
 
@@ -372,7 +374,7 @@ export class HomeView extends LitElement {
 
       const editHandler = (ev) => {
         dialog.removeEventListener('edit-item-requested', editHandler);
-        this._navigateToBox(ev.detail.item.box_id);
+        this.shadowRoot.querySelector('edit-item-dialog').show(ev.detail.item);
       };
       dialog.addEventListener('edit-item-requested', editHandler);
     }

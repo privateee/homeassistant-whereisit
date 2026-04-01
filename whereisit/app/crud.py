@@ -232,9 +232,14 @@ async def delete_item(db: AsyncSession, item_id: int):
 
 async def get_categories(db: AsyncSession):
     result = await db.execute(
-        select(models.Item.category).distinct().where(models.Item.category.isnot(None))
+        select(models.Item.category).where(models.Item.category.isnot(None))
     )
-    item_categories = {row[0] for row in result.all() if row[0] and row[0].strip()}
+    item_categories = set()
+    for row in result.all():
+        if row[0] and row[0].strip():
+            for cat in row[0].split(','):
+                if cat.strip():
+                    item_categories.add(cat.strip())
     result2 = await db.execute(select(models.Category.name))
     standalone_categories = {row[0] for row in result2.all()}
     return sorted(item_categories | standalone_categories)
@@ -250,15 +255,40 @@ async def create_category(db: AsyncSession, name: str):
     return db_cat
 
 async def rename_category(db: AsyncSession, old_name: str, new_name: str):
-    from sqlalchemy import update
-    await db.execute(update(models.Item).where(models.Item.category == old_name).values(category=new_name))
+    from sqlalchemy import update, or_
     await db.execute(update(models.Category).where(models.Category.name == old_name).values(name=new_name))
+    # Handle comma-separated category values in items
+    result = await db.execute(select(models.Item).where(
+        or_(
+            models.Item.category == old_name,
+            models.Item.category.like(f"{old_name},%"),
+            models.Item.category.like(f"%,{old_name}"),
+            models.Item.category.like(f"%,{old_name},%"),
+        )
+    ))
+    items = result.scalars().all()
+    for item in items:
+        cats = [c.strip() for c in item.category.split(',')]
+        cats = [new_name if c == old_name else c for c in cats]
+        item.category = ','.join(cats)
     await db.commit()
 
 async def delete_category(db: AsyncSession, category_name: str):
-    from sqlalchemy import update, delete
-    await db.execute(update(models.Item).where(models.Item.category == category_name).values(category=None))
+    from sqlalchemy import delete, or_
     await db.execute(delete(models.Category).where(models.Category.name == category_name))
+    # Handle comma-separated category values in items
+    result = await db.execute(select(models.Item).where(
+        or_(
+            models.Item.category == category_name,
+            models.Item.category.like(f"{category_name},%"),
+            models.Item.category.like(f"%,{category_name}"),
+            models.Item.category.like(f"%,{category_name},%"),
+        )
+    ))
+    items = result.scalars().all()
+    for item in items:
+        cats = [c.strip() for c in item.category.split(',') if c.strip() != category_name]
+        item.category = ','.join(cats) if cats else None
     await db.commit()
 
 # ── Search ────────────────────────────────────────────────────────────────────
@@ -280,7 +310,12 @@ async def search_storage(db: AsyncSession, query: str = "", category: str = None
     item_query = select(models.Item).options(selectinload(models.Item.box))
     conditions = []
     if category:
-        conditions.append(models.Item.category == category)
+        conditions.append(or_(
+            models.Item.category == category,
+            models.Item.category.like(f"{category},%"),
+            models.Item.category.like(f"%,{category}"),
+            models.Item.category.like(f"%,{category},%"),
+        ))
     if query:
         conditions.append(or_(
             models.Item.name.ilike(f"%{query}%"),

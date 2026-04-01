@@ -56,6 +56,20 @@ export class ItemDetailDialog extends LitElement {
         font-style: italic;
         color: #555;
     }
+    .category-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: flex-end;
+    }
+    .category-tag {
+        background: #e3f2fd;
+        color: #1565c0;
+        border-radius: 12px;
+        padding: 2px 10px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
   `;
 
     static properties = {
@@ -79,11 +93,15 @@ export class ItemDetailDialog extends LitElement {
         }
     }
 
+    _onClosed() {
+        this.dispatchEvent(new CustomEvent('item-detail-closed', { bubbles: true, composed: true }));
+    }
+
     render() {
         if (!this.item) return html``;
 
         return html`
-      <mwc-dialog heading="${this.item.name}">
+      <mwc-dialog heading="${this.item.name}" @closed=${this._onClosed}>
         <div class="detail-container">
             <div class="photo-container">
                 ${this.item.photo_path
@@ -100,8 +118,10 @@ export class ItemDetailDialog extends LitElement {
             </div>
             
             <div class="info-row">
-                <span class="label">Category</span>
-                <span class="value" style="color: var(--mdc-theme-primary);">${this.item.category || 'Uncategorized'}</span>
+                <span class="label">Categories</span>
+                ${this.item.category
+                    ? html`<div class="category-tags">${this.item.category.split(',').map(c => c.trim()).filter(Boolean).map(c => html`<span class="category-tag">${c}</span>`)}</div>`
+                    : html`<span class="value">Uncategorized</span>`}
             </div>
 
             <div class="info-row">
